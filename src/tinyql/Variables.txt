@@ -1,0 +1,4 @@
+Persons: PersonID,LastName,Address
+Animals: AnimalID,Name,Lives
+Colors: ColorID,Name
+Customers: ContactName,Age,City,CustomerID

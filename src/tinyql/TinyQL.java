@@ -13,10 +13,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import jdk.nashorn.internal.runtime.ListAdapter;
 
 /**
  *
@@ -31,12 +28,15 @@ public class TinyQL {
     private Integer pos; //entero que define la posicion del vector donde se alamcenara todo nuestro lenguaje
     static String archivo; //variable con la que se va a abrir un archivo un fichero de texto
     public String rutaTablaDeSImbolos; //localizacion de la tabla de simbolos
+    static String bd; //archivo de la BD
     public ArrayList<String> variables = new ArrayList<String>();
     static ArrayList<String> patronesSintaticos = new ArrayList<String>();
     static ArrayList<String> ListaAnalisisSintatico = new ArrayList<String>();
+    static ArrayList<String> tablasVariables=new ArrayList<String>();
+    static ArrayList<String> columnasVariables=new ArrayList<String>();
     
     TinyQL() throws IOException{
-        rutaTablaDeSImbolos = "C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL-master\\src\\tinyql\\tablaDeSImbolos.txt";
+        rutaTablaDeSImbolos = "C:\\Users\\bramd\\OneDrive\\Documentos\\NetBeansProjects\\Compilador-TinyQL-master\\src\\tinyql\\tablaDeSImbolos.txt";
         variables.add("");
     }
     public static void main(String[] args) throws IOException {
@@ -44,7 +44,8 @@ public class TinyQL {
 //        Pattern.matches("DE", "");
 //        la puta clave 
 
-        archivo="C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL-master\\src\\tinyql\\CodigoFuente.txt";
+        archivo="C:\\Users\\bramd\\OneDrive\\Documentos\\NetBeansProjects\\Compilador-TinyQL-master\\src\\tinyql\\CodigoFuente.txt";
+        bd="C:\\Users\\bramd\\OneDrive\\Documentos\\NetBeansProjects\\Compilador-TinyQL-master\\src\\tinyql\\Variables.txt";
         muestraContenido();// verificar si se pudo abrir el archivo
         TinyQL tinyQL = new TinyQL(); //instaciamiento de clase
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,12 +62,206 @@ public class TinyQL {
 //            PatronesSintatico();
             if(tinyQL.AnalisisSintatico2()){
             
-                //Analisis Semantico
-            
+                variablesCargadas();
+                analisisSemantico();
             }
         }
         
         
+    }
+    static void analisisSemantico() throws FileNotFoundException, IOException
+    {
+        FileReader f = new FileReader(archivo);
+        BufferedReader b = new BufferedReader(f);
+        String cadena;
+        int linea=1;
+        boolean flag=false;//bandera que me ayudara a salirme del while por si el break no puede hacerlo
+        while((cadena=b.readLine()) !=null && !flag)
+        {
+            String []parts=cadena.split(" ");
+           
+            if(parts[0].equals("CREATE") || parts[0].equals("create"))
+            {//Este me permitira identificar si ya existe la tabla y que no se pueda guardar 2 veces la misma tabla
+                if(tablaExiste(parts[2]))
+                {
+                    System.out.println("Error en la linea "+linea+", ya existe la tabla "+parts[2]+" en la base de datos");
+                    break;
+                }
+            }
+            
+            if(parts[0].equals("INSERT") || parts[0].equals("insert"))
+            {//Este me permitira identificar si existe la tabla en la que se desea guardar datos
+                if(!tablaExiste(parts[2]))
+                {
+                    System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[2]+" en la base de datos");
+                    break;
+                }
+                else
+                {
+                    String []columnas=parts[3].split(",");
+                    if(!columnaExiste(columnas[0].substring(2,columnas[0].length()-1)))
+                    {
+                        System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[0].substring(2,columnas[0].length()-1)+"' en la base de datos");
+                        break;
+                    }
+                    for(int i=1;i<columnas.length-1;i++)
+                    {
+//                        System.out.println(columnas[i].substring(1,columnas[i].length()-1));
+                        if(!columnaExiste(columnas[i].substring(1,columnas[i].length()-1)))
+                        {
+                            System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[i].substring(1,columnas[i].length()-1)+"' en la base de datos");
+                            flag=true;
+                            break;
+                        }
+                    }
+                    if(!columnaExiste(columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)))
+                    {
+                        System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)+"' en la base de datos");
+                        break;
+                    }
+                }
+            }
+           
+            if(parts[0].equals("DELETE") || parts[0].equals("delete"))
+            {
+                if(!tablaExiste(parts[2]))
+                {
+                    System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[2]+" en la base de datos");
+                    break;
+                }
+                if(!columnaExiste(parts[4].substring(1,parts[4].length()-1)))
+                {
+                    System.out.println("Error en la linea "+linea+", no existe la columna '"+parts[4].substring(1,parts[4].length()-1)+"' en la base de datos");
+                    break;
+                }
+            }
+            
+            if(parts[0].equals("SELECT") || parts[0].equals("select"))
+            {
+                if(!tablaExiste(parts[3]))
+                {
+                    System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[3]+" en la base de datos");
+                    break;
+                }
+                else
+                {
+                    if(!parts[1].equals("*"))
+                    {
+                        String []columnas=parts[1].split(",");
+                        if(!columnaExiste(columnas[0].substring(2,columnas[0].length()-1)))
+                        {
+                            System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[0].substring(2,columnas[0].length()-1)+"' en la base de datos");
+                            break;
+                        }
+                        for(int i=1;i<columnas.length-1;i++)
+                        {
+//                            System.out.println(columnas[i].substring(1,columnas[i].length()-1));
+                            if(!columnaExiste(columnas[i].substring(1,columnas[i].length()-1)))
+                            {
+                                System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[i].substring(1,columnas[i].length()-1)+"' en la base de datos");
+                                flag=true;
+                                break;
+                            }
+                        }
+                        if(!columnaExiste(columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)))
+                        {
+                            System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)+"' en la base de datos");
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if(parts[0].equals("UPDATE") || parts[0].equals("update"))
+            {
+                if(!tablaExiste(parts[1]))
+                {
+                    System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[1]+" en la base de datos");
+                    break;
+                }
+                else
+                {
+                    int aux=0;
+                    for(int i=3;i<=parts.length;i++)
+                        if(parts[i].equals("WHERE") || parts[i].equals("where"))
+                        {
+                            aux=i-1;
+                            break;
+                        }
+                    if(!columnaExiste(parts[3].substring(2,parts[3].length()-1)))
+                    {
+                        System.out.println("Error en la linea "+linea+", no existe la columna "+parts[3].substring(2,parts[3].length()-1)+" en la base de datos");
+                        break;
+                    }
+                    for(int i=6;i<=aux;i+=3)
+                        if(!columnaExiste(parts[i].substring(1,parts[i].length()-1)))
+                        {
+                            System.out.println("Error en la linea "+linea+", no existe la columna '"+parts[i].substring(1,parts[i].length()-1)+"' en la base de datos");
+                            flag=true;
+                            break;
+                        }
+                    aux+=2;
+                    if(!columnaExiste(parts[aux].substring(1,parts[aux].length()-1)))
+                    {
+                        System.out.println("Error en la linea "+linea+", no existe la columna "+parts[aux].substring(1,parts[aux].length()-1)+" en la base de datos");
+                        break;
+                    }
+                }
+            }
+            linea++;
+        }
+    }
+    static boolean tablaExiste(String a)
+    {
+        /*
+        Esta funcion me permitira buscar en mi ArrayList si es que existe una tabla con dicho nombre
+        en caso de que lo encuentre regresara una bandera en TRUE y en caso contrario regresara un FALSE
+        */
+        boolean ban=false;
+        int index=0;
+        for(String tabla:tablasVariables)
+        {
+            if(a.contains(tabla))
+            {
+                ban=true;
+                break;
+            }
+            index++;
+        }
+        return ban;
+    }
+    
+    static boolean columnaExiste(String a)
+    {
+        /*
+        Esta funcion me permitira buscar en mi ArrayList si es que existe una columna con dicho nombre
+        en caso de que lo encuentre regresara una bandera en TRUE y en caso contrario regresara un FALSE
+        */
+        boolean ban=false;
+        int index=0;
+        for(String columna:columnasVariables)
+        {
+            if(columna.contains(a))
+            {
+                ban=true;
+                break;
+            }
+            index++;
+        }
+        return ban;
+    }
+    static void variablesCargadas() throws FileNotFoundException, IOException
+    {
+        FileReader f = new FileReader(bd);
+        BufferedReader b = new BufferedReader(f);
+        String cadena;
+        while((cadena=b.readLine()) !=null)
+        {
+            String []parts=cadena.split(" ");
+            tablasVariables.add(parts[0].substring(0, parts[0].length()-1));
+            columnasVariables.add(parts[1]);
+        }
+        System.out.println("6.- Variables Cargadas");
     }
     public boolean AnalisisSintatico2() throws FileNotFoundException, IOException{
         FileReader f = new FileReader(archivo);
@@ -108,7 +303,7 @@ public class TinyQL {
             System.out.println("5.- Analisis sintatico Completa sin errores");
         
         
-        return !isPattern;
+        return isPattern;
     }
     private static boolean AnalisisSintatico() throws FileNotFoundException, IOException {
         FileReader f = new FileReader(archivo);
