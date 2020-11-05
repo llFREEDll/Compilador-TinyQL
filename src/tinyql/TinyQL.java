@@ -116,7 +116,26 @@ public class TinyQL {
                 }
 
 
-            }
+            }if (tipoDeOperacion.equals("SELECT") || tipoDeOperacion.equals("select")){
+
+                if (cadena.contains("*")){
+                    System.out.println("SELECT " + cadena.substring(cadena.indexOf('"') + 1,cadena.indexOf(";") - 1) + " , *");
+                }else{
+                    nombresColumnas = cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(")"));
+                    cadena = cadena.substring(cadena.indexOf(")"));
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    operando2 = cadena.substring(0 , cadena.indexOf('"'));
+                    while(nombresColumnas.contains(",")){
+
+                        System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+                        nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
+
+                    }
+                    System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+
+                }
+
+        }
 
         }
 
