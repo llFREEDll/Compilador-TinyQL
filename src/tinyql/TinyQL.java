@@ -6,11 +6,7 @@
 package tinyql;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -24,28 +20,27 @@ public class TinyQL {
     
     
     private Character[] lenguaje;// vector que almacena todos los simbolos del lenguaje
-    private Character[][] patrones;// vector que almacena los patrones del lenguaje
     private Integer pos; //entero que define la posicion del vector donde se alamcenara todo nuestro lenguaje
     static String archivo; //variable con la que se va a abrir un archivo un fichero de texto
     public String rutaTablaDeSImbolos; //localizacion de la tabla de simbolos
     static String bd; //archivo de la BD
-    public ArrayList<String> variables = new ArrayList<String>();
-    static ArrayList<String> patronesSintaticos = new ArrayList<String>();
-    static ArrayList<String> ListaAnalisisSintatico = new ArrayList<String>();
-    static ArrayList<String> tablasVariables=new ArrayList<String>();
-    static ArrayList<String> columnasVariables=new ArrayList<String>();
+    public ArrayList<String> variables = new ArrayList<>();
+    static ArrayList<String> tablasVariables=new ArrayList<>();
+    static ArrayList<String> columnasVariables=new ArrayList<>();
+    public static Boolean SegirCompilando = true;
     
-    TinyQL() throws IOException{
-        rutaTablaDeSImbolos = "C:\\Users\\bramd\\OneDrive\\Documentos\\NetBeansProjects\\Compilador-TinyQL-master\\src\\tinyql\\tablaDeSImbolos.txt";
+    TinyQL() {
+        rutaTablaDeSImbolos = "C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\tablaDeSImbolos.txt";
         variables.add("");
     }
+
     public static void main(String[] args) throws IOException {
-        Boolean SegirCompilando = true;
+        SegirCompilando = true;
 //        Pattern.matches("DE", "");
 //        la puta clave 
 
-        archivo="C:\\Users\\bramd\\OneDrive\\Documentos\\NetBeansProjects\\Compilador-TinyQL-master\\src\\tinyql\\CodigoFuente.txt";
-        bd="C:\\Users\\bramd\\OneDrive\\Documentos\\NetBeansProjects\\Compilador-TinyQL-master\\src\\tinyql\\Variables.txt";
+        archivo="C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\CodigoFuente.txt";
+        bd="C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\Variables.txt";
         muestraContenido();// verificar si se pudo abrir el archivo
         TinyQL tinyQL = new TinyQL(); //instaciamiento de clase
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,13 +59,71 @@ public class TinyQL {
             
                 variablesCargadas();
                 analisisSemantico();
+                if (SegirCompilando){
+
+                    GenerarCodigoIntermedio();
+
+                }
             }
         }
         
         
     }
-    static void analisisSemantico() throws FileNotFoundException, IOException
+    public static void GenerarCodigoIntermedio() throws IOException {
+
+        FileReader f = new FileReader(archivo);
+        BufferedReader b = new BufferedReader(f);
+        String cadena;
+        String tipoDeOperacion;
+        StringBuilder operando1;
+        String operando2;
+        String nombresColumnas;
+        String valores;
+        while((cadena=b.readLine()) !=null)
+        {
+            tipoDeOperacion = cadena.substring(0, cadena.indexOf(" "));
+
+            if (tipoDeOperacion.equals("INSERT") || tipoDeOperacion.equals("insert")) {
+
+                cadena = cadena.substring(cadena.indexOf('"') + 1);
+                operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
+                cadena = cadena.substring(cadena.indexOf('"') + 1);
+                cadena = cadena.substring(cadena.indexOf('"') + 1);
+                if (cadena.contains(",")){ // quiere decir que tiene mas de un campo
+
+                    nombresColumnas = cadena.substring(0,cadena.indexOf(")"));
+                    cadena = cadena.substring(cadena.indexOf("(") + 2);
+                    valores = cadena.substring(0,cadena.indexOf(")"));
+
+                    while(nombresColumnas.contains(",")){
+
+                        operando2 =  valores.substring(0 , valores.indexOf('"'));
+                        System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
+                        nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
+                        valores = valores.substring(valores.indexOf('"') + 3);
+
+                    }
+                    operando2 =  valores.substring(0 , valores.indexOf('"'));
+                    System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
+
+
+                }else { //si solo contien un campo a insertar
+
+                    operando1.append(".").append(cadena, 0, cadena.indexOf('"'));
+                    cadena = cadena.substring(cadena.indexOf("("));
+                    operando2 = cadena.substring(0,cadena.length()-3);
+                    System.out.println(tipoDeOperacion + " " + operando1 + "," + operando2);
+                }
+
+
+            }
+
+        }
+
+    }
+    static void analisisSemantico() throws IOException
     {
+        SegirCompilando = true;
         FileReader f = new FileReader(archivo);
         BufferedReader b = new BufferedReader(f);
         String cadena;
@@ -85,6 +138,7 @@ public class TinyQL {
                 if(tablaExiste(parts[2]))
                 {
                     System.out.println("Error en la linea "+linea+", ya existe la tabla "+parts[2]+" en la base de datos");
+                    SegirCompilando = false;
                     break;
                 }
             }
@@ -94,29 +148,33 @@ public class TinyQL {
                 if(!tablaExiste(parts[2]))
                 {
                     System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[2]+" en la base de datos");
+                    SegirCompilando = false;
                     break;
                 }
                 else
                 {
                     String []columnas=parts[3].split(",");
-                    if(!columnaExiste(columnas[0].substring(2,columnas[0].length()-1)))
+                    if(columnaExiste(columnas[0].substring(2, columnas[0].length() - 1)))
                     {
                         System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[0].substring(2,columnas[0].length()-1)+"' en la base de datos");
+                        SegirCompilando = false;
                         break;
                     }
                     for(int i=1;i<columnas.length-1;i++)
                     {
 //                        System.out.println(columnas[i].substring(1,columnas[i].length()-1));
-                        if(!columnaExiste(columnas[i].substring(1,columnas[i].length()-1)))
+                        if(columnaExiste(columnas[i].substring(1, columnas[i].length() - 1)))
                         {
                             System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[i].substring(1,columnas[i].length()-1)+"' en la base de datos");
+                            SegirCompilando = false;
                             flag=true;
                             break;
                         }
                     }
-                    if(!columnaExiste(columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)))
+                    if(columnaExiste(columnas[columnas.length - 1].substring(1, columnas[columnas.length - 1].length() - 2)))
                     {
                         System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)+"' en la base de datos");
+                        SegirCompilando = false;
                         break;
                     }
                 }
@@ -127,11 +185,13 @@ public class TinyQL {
                 if(!tablaExiste(parts[2]))
                 {
                     System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[2]+" en la base de datos");
+                    SegirCompilando = false;
                     break;
                 }
-                if(!columnaExiste(parts[4].substring(1,parts[4].length()-1)))
+                if(columnaExiste(parts[4].substring(1, parts[4].length() - 1)))
                 {
                     System.out.println("Error en la linea "+linea+", no existe la columna '"+parts[4].substring(1,parts[4].length()-1)+"' en la base de datos");
+                    SegirCompilando = false;
                     break;
                 }
             }
@@ -141,6 +201,7 @@ public class TinyQL {
                 if(!tablaExiste(parts[3]))
                 {
                     System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[3]+" en la base de datos");
+                    SegirCompilando = false;
                     break;
                 }
                 else
@@ -148,24 +209,27 @@ public class TinyQL {
                     if(!parts[1].equals("*"))
                     {
                         String []columnas=parts[1].split(",");
-                        if(!columnaExiste(columnas[0].substring(2,columnas[0].length()-1)))
+                        if(columnaExiste(columnas[0].substring(2, columnas[0].length() - 1)))
                         {
                             System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[0].substring(2,columnas[0].length()-1)+"' en la base de datos");
+                            SegirCompilando = false;
                             break;
                         }
                         for(int i=1;i<columnas.length-1;i++)
                         {
 //                            System.out.println(columnas[i].substring(1,columnas[i].length()-1));
-                            if(!columnaExiste(columnas[i].substring(1,columnas[i].length()-1)))
+                            if(columnaExiste(columnas[i].substring(1, columnas[i].length() - 1)))
                             {
                                 System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[i].substring(1,columnas[i].length()-1)+"' en la base de datos");
+                                SegirCompilando = false;
                                 flag=true;
                                 break;
                             }
                         }
-                        if(!columnaExiste(columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)))
+                        if(columnaExiste(columnas[columnas.length - 1].substring(1, columnas[columnas.length - 1].length() - 2)))
                         {
                             System.out.println("Error en la linea "+linea+", no existe la columna '"+columnas[columnas.length-1].substring(1,columnas[columnas.length-1].length()-2)+"' en la base de datos");
+                            SegirCompilando = false;
                             break;
                         }
                     }
@@ -177,6 +241,7 @@ public class TinyQL {
                 if(!tablaExiste(parts[1]))
                 {
                     System.out.println("Error en la linea "+linea+", no existe la tabla "+parts[1]+" en la base de datos");
+                    SegirCompilando = false;
                     break;
                 }
                 else
@@ -188,22 +253,25 @@ public class TinyQL {
                             aux=i-1;
                             break;
                         }
-                    if(!columnaExiste(parts[3].substring(2,parts[3].length()-1)))
+                    if(columnaExiste(parts[3].substring(2, parts[3].length() - 1)))
                     {
                         System.out.println("Error en la linea "+linea+", no existe la columna "+parts[3].substring(2,parts[3].length()-1)+" en la base de datos");
+                        SegirCompilando = false;
                         break;
                     }
                     for(int i=6;i<=aux;i+=3)
-                        if(!columnaExiste(parts[i].substring(1,parts[i].length()-1)))
+                        if(columnaExiste(parts[i].substring(1, parts[i].length() - 1)))
                         {
                             System.out.println("Error en la linea "+linea+", no existe la columna '"+parts[i].substring(1,parts[i].length()-1)+"' en la base de datos");
+                            SegirCompilando = false;
                             flag=true;
                             break;
                         }
                     aux+=2;
-                    if(!columnaExiste(parts[aux].substring(1,parts[aux].length()-1)))
+                    if(columnaExiste(parts[aux].substring(1, parts[aux].length() - 1)))
                     {
                         System.out.println("Error en la linea "+linea+", no existe la columna "+parts[aux].substring(1,parts[aux].length()-1)+" en la base de datos");
+                        SegirCompilando = false;
                         break;
                     }
                 }
@@ -218,7 +286,6 @@ public class TinyQL {
         en caso de que lo encuentre regresara una bandera en TRUE y en caso contrario regresara un FALSE
         */
         boolean ban=false;
-        int index=0;
         for(String tabla:tablasVariables)
         {
             if(a.contains(tabla))
@@ -226,7 +293,6 @@ public class TinyQL {
                 ban=true;
                 break;
             }
-            index++;
         }
         return ban;
     }
@@ -238,7 +304,6 @@ public class TinyQL {
         en caso de que lo encuentre regresara una bandera en TRUE y en caso contrario regresara un FALSE
         */
         boolean ban=false;
-        int index=0;
         for(String columna:columnasVariables)
         {
             if(columna.contains(a))
@@ -246,11 +311,10 @@ public class TinyQL {
                 ban=true;
                 break;
             }
-            index++;
         }
-        return ban;
+        return !ban;
     }
-    static void variablesCargadas() throws FileNotFoundException, IOException
+    static void variablesCargadas() throws IOException
     {
         FileReader f = new FileReader(bd);
         BufferedReader b = new BufferedReader(f);
@@ -263,7 +327,7 @@ public class TinyQL {
         }
         System.out.println("6.- Variables Cargadas");
     }
-    public boolean AnalisisSintatico2() throws FileNotFoundException, IOException{
+    public boolean AnalisisSintatico2() throws IOException {
         FileReader f = new FileReader(archivo);
         BufferedReader b = new BufferedReader(f);
         String cadena;
@@ -276,20 +340,16 @@ public class TinyQL {
         patronDrop = "(DROP|drop)( )+(TABLE|table)( )+\"[a-zA-Z][a-zA-Z0-9]*\"( )*;"; 
         
         boolean isPattern = true;//bandera que me dice si cada una de las lineas no esta bien escrita,bandera que se activa si detecta errores
-        Integer lineNumber = 1; // contador de linea del documento
+        int lineNumber = 1; // contador de linea del documento
         
         while((cadena = b.readLine()) != null && isPattern) { //&& flag
-            
-            isPattern = false;
-            if(Pattern.matches(patronInsert, cadena)||
-               Pattern.matches(patronSelect1, cadena)||
-               Pattern.matches(patronSelect2, cadena)||
-               Pattern.matches(patronUpdate, cadena)||
-               Pattern.matches(patronDelete, cadena)||
-               Pattern.matches(patronCreate, cadena)||
-               Pattern.matches(patronDrop, cadena))
-                    
-                isPattern = true;
+            isPattern = Pattern.matches(patronInsert, cadena) ||
+                    Pattern.matches(patronSelect1, cadena) ||
+                    Pattern.matches(patronSelect2, cadena) ||
+                    Pattern.matches(patronUpdate, cadena) ||
+                    Pattern.matches(patronDelete, cadena) ||
+                    Pattern.matches(patronCreate, cadena) ||
+                    Pattern.matches(patronDrop, cadena);
             
             if (!isPattern){
                 
@@ -305,183 +365,8 @@ public class TinyQL {
         
         return isPattern;
     }
-    private static boolean AnalisisSintatico() throws FileNotFoundException, IOException {
-        FileReader f = new FileReader(archivo);
-        BufferedReader b = new BufferedReader(f);
-        int contador=1;//esta linea nos servira para decir en que line esta el error
-        Integer numeroDePalabras = 1;//contar en que palabra voy de la linea del documento
-        String cadena, ss; // ss significa SubString
-        boolean flag = true;//bandera que se activa si detecta errores
-        while((cadena = b.readLine()) != null && flag) { //ciclo para leer el documento entero
-            ListaAnalisisSintatico.clear();
-            numeroDePalabras = 1;
-            boolean banSelect=false,banInsert=false,banDelete=false,banUpdate=false;
-            for(int i = 0; i < cadena.length(); i++){ //ciclo para leer una linea del documento
-                if(numeroDePalabras == 1 && cadena.charAt(cadena.length()-1) != ';'){//detectar que haya un ; al final de cada linea 
-                    System.out.println("ERRROR SINTATICO: Falta: ; en la linea "+contador);
-                    flag = false; //cerrar ciclo 2
-                    break; ////cerrar ciclo 1
-                }
-                else if(cadena.charAt(i) == ' ' || cadena.charAt(i) == ';'){ //identifico donde termina cada palabra de la cadena 
-                    ss = cadena.substring(0, i); // ss se vuelve igual a la palabra encontrada
-                    if(numeroDePalabras.equals(1)){
-                        flag = false;
-                        for (int j = 0; j < 4; j++) // verifico si la primera palabra palabra es un insert, update, delete o select
-                            if(patronesSintaticos.get(j).equals(ss)){
-                                flag = true;//notifica que si se inicio con lo que se debe
-                                ListaAnalisisSintatico.add(ss); // agrego la primera palabra al un arreglo, esto me permite manipular mas facil los datos 
-                            }                                
-                        if(!flag){//mensaje de error
-                            System.out.println("ERRROR SINTATICO: No se inicio con un operador sql(insert, update, delete o select) en la linea "+contador);
-                            break;
-                        }
-                        
-                    }else if(numeroDePalabras.equals(2)){ //la segunda palabra del lenguaje solo puede contener o variables o un "*"
-                    
-                        if(!ss.equals("*") && !ss.equals("into") && !ss.equals("from")){ // si la segunda palabra no es un * no puede ser ninguna otra palabra reservada
-                            if(patronesSintaticos.contains(ss)){// si hay una palabra reservada en la segunda palabra hay un error
-                                    System.out.println("ERROR SINTATICO: palabra reservada " + ss + " fuera de lugar, se esperaba '*', into, from o una variable en la linea "+contador);
-                                    flag = false; //cerrar ciclo 2
-                                    break; ////cerrar ciclo 1
-                            }
-                            else{// en caso de que todo este vien hay que analizar que la variable este escrita correctamente
-                                //NOTA: no hay parentesis en este lenguaje, por lo que una variable se tiene ver de la siguiente manera
-                                // select "id","name","adress" from "table" // solo se evaluara que tenga un numero par de " y que esten separados por ,
-                                //System.out.println(ss);
-                                String subSS = ss;
-                                int contarComillas = 0;
-                                for (int j = 0; j < subSS.length(); j++) { // reviso toda la variable para saber si tiene un numero par de "
-                                   if(subSS.charAt(j) == '"'){// si en la variable existe un " 
-                                       subSS = subSS.substring(j + 1);// la cadena se vuelve igual a la cadena si en " encontrado para poder seguir buscando mas 
-                                       contarComillas++;
-                                       j=0; // se reinicia el ciclo hasta que el tamano de la cadena sea 0, la funcion chartAt rgresa -1 si la cadena no 
-                                      //contiene lo que se busca por lo que al hacerla substring de esta hasta -1 retorta una cadena vacia por lo cual 
-                                      //nunca se va a hacer un ciclo infinito 
-//                                       System.out.println(subSS + " " + contarComillas);
-                                   }
-                                   }
-                                    if(subSS.length()==1)
-                                    {
-                                        System.out.println("ERROR SINTATICO: se esperaba ELEMENTO entre las comillas en variable en la linea "+contador);
-                                        flag=false;
-                                    }
-                                    else if(contarComillas % 2 == 0 ){ // si tienes las comilla necesarias se procede a revisar las comas
-                                         subSS = ss;// reinicio la variable auxiliar
-                                         if(subSS.charAt(subSS.length() - 1) == ','){ //la variable no puede terminar con una , ya que harian falta elementos
-                                             System.out.println("ERROR SINTATICO: se esperaba elemeto despues de un ',' en la linea "+contador);
-                                             flag=false;
-                                         }
-                                         else{
-                                             if(contarComillas>0)
-                                             {
-                                            ListaAnalisisSintatico.add(ss);
-                                             //System.out.println("se agrego palablabra 2");
-                                             if(ListaAnalisisSintatico.get(0).equals("update"))
-                                                 banUpdate=true;//bandera que me ayudara a saber como va la estrucutra de la sentencia
-                                             }
-                                             else
-                                             {
-                                                System.out.println("ERROR SINTATICO: No tiene variables agregadas en la linea "+contador);
-                                                flag=false; 
-                                             }
-                                         } 
-                                     }
-                                     else{
-                                            System.out.println("ERROR SINTATICO: se esperaba COMILLA DOBLE en variable en la linea "+contador);
-                                            flag=false;
-                                     }
-                                }
-                                
-                                String cad1=ListaAnalisisSintatico.get(0),
-                                        cad2=ListaAnalisisSintatico.get(1);
-                                if(cad1.equals("insert") && !cad2.equals("into"))
-                                {
-                                    System.out.println("ERROR SINTATICO: se esperaba INTO despues de INSERT en la linea "+contador);
-                                    flag=false;
-                                }
-                                if(cad1.equals("insert") && cad2.equals("into"))
-                                    banInsert=true;//bandera que me ayudara a saber como va la estrucutra de la sentencia
-                                if(cad1.equals("delete") && !cad2.equals("from"))
-                                {
-                                    System.out.println("ERROR SINTATICO: se esperaba FROM despues de DELETE en la linea "+contador);
-                                    flag=false;
-                                }
-                                if(cad1.equals("delete") && cad2.equals("from"))
-                                    banDelete=true;//bandera que me ayudara a saber como va la estrucutra de la sentencia
-                                if(cad1.equals("select") && cad2.equals("*"))
-                                    banSelect=true;//bandera que me ayudara a saber como va la estrucutra de la sentencia
-                            } 
-                        }
-                    else if(numeroDePalabras.equals(3))
-                    {
-                        if(banSelect && ss.equals("from"))//con esto tendre la secuencia select * from
-                            ListaAnalisisSintatico.add(ss);
-                        else if(banUpdate && ss.equals("set"))//con esto tendre la secuencia update variables set
-                            ListaAnalisisSintatico.add(ss);
-                        else if(banSelect && !ss.equals("from"))
-                        {
-                            System.out.println("ERROR SINTATICO: se esperaba FROM despues de Select * en la linea "+contador);
-                            flag=false;
-                        }
-                        else if(banUpdate && !ss.equals("set"))
-                        {
-                            System.out.println("ERROR SINTATICO: se esperaba SET despues de variables en la linea "+contador);
-                            flag=false;
-                        }
-                        else
-                        {
-                            String subSS = ss;
-                            int contarComillas = 0;
-                            for (int j = 0; j < subSS.length(); j++) // reviso toda la variable para saber si tiene un numero par de "
-                            { 
-                                if(subSS.charAt(j) == '"')// si en la variable existe un " 
-                                {
-                                    subSS = subSS.substring(j + 1);// la cadena se vuelve igual a la cadena si en " encontrado para poder seguir buscando mas 
-                                    contarComillas++;
-                                    j=0; // se reinicia el ciclo hasta que el tamano de la cadena sea 0, la funcion chartAt rgresa -1 si la cadena no 
-                                      //contiene lo que se busca por lo que al hacerla substring de esta hasta -1 retorta una cadena vacia por lo cual 
-                                      //nunca se va a hacer un ciclo infinito 
-                                }
-                            }
-                            if(subSS.length()==1)
-                            {
-                                System.out.println("ERROR SINTATICO: se esperaba ELEMENTO entre las comillas en variable en la linea "+contador);
-                                flag=false;
-                            }
-                            else if(contarComillas % 2 == 0)
-                            {
-                                subSS = ss;// reinicio la variable auxiliar
-                                if(subSS.charAt(subSS.length() - 1) == ',')
-                                { //la variable no puede terminar con una , ya que harian falta elementos
-                                    System.out.println("ERROR SINTATICO: se esperaba elemeto despues de un ',' en la linea "+contador);
-                                    flag=false;
-                                }
-                            }
-                            else
-                            {
-                                if(banInsert)//tengo la secuencia de insert into y variables
-                                    ListaAnalisisSintatico.add(ss);
-                                else if(banDelete)//tendre la secuencia de delete from y variables
-                                    ListaAnalisisSintatico.add(ss);
-                            }
-                        }
-                    }
-                    
-                        
-                    numeroDePalabras++;
-                    cadena = cadena.substring(i + 1); // ya que se guardo la palabra se elimina la misma de la cadena
-                    i = 0;// se reinicia el contador ya que el inicio de la cadena tambien cambio
-                    //System.out.println(cadena);
-                    }
-                    
-                }
-                contador++;
-                System.out.println("salto de linea");
-        }
-        
-        return true;   
-    }
-     public static void muestraContenido() throws FileNotFoundException, IOException {
+
+    public static void muestraContenido() throws IOException {
 //        String cadena;
         FileReader f = new FileReader(archivo);
         BufferedReader b = new BufferedReader(f);
@@ -491,23 +376,7 @@ public class TinyQL {
         System.out.println("1.- Codigo fuente abierto correctamente");
         b.close();
     }
-     public static void PatronesSintatico(){
-         Character aux = (char)34;
-        patronesSintaticos.add("select");
-        patronesSintaticos.add("insert");
-        patronesSintaticos.add("update");
-        patronesSintaticos.add("delete");
-        patronesSintaticos.add("*");
-        patronesSintaticos.add("from");
-        patronesSintaticos.add("where");
-        patronesSintaticos.add(aux.toString());
-        patronesSintaticos.add("=");
-        patronesSintaticos.add("into");
-        patronesSintaticos.add(",");
-        patronesSintaticos.add("set");
-        patronesSintaticos.add("'");
-        
-     }
+
     public void CargarLenguaje(){
         pos = 0; //entero que define la posicion del vector donde se alamcenara todo nuestro lenguaje
         lenguaje = new Character[73];// tamano definido por todos los simbolos que representa el lenguaje
@@ -572,7 +441,8 @@ public class TinyQL {
     {
         pos=0;
         char[] palabra;
-        patrones=new Character[15][10];
+        // vector que almacena los patrones del lenguaje
+        Character[][] patrones = new Character[15][10];
         
         patrones[pos][0]='"';
         pos++;
@@ -644,123 +514,16 @@ public class TinyQL {
         pos++;
         System.out.println("4.- Patrones cargados");
     }
-    
-    public void verificacionPatrones() throws FileNotFoundException, IOException
-    {
+
+    public Boolean BarridoDeVerificacionDeSimbolos() throws IOException{
         String cadena;
-        FileReader f = new FileReader(archivo);
-        File tablaDS = new File(rutaTablaDeSImbolos);//para la tabla de simbolos
-                // Si el archivo no existe es creado
-            if (!tablaDS.exists()) {
-                tablaDS.createNewFile();
-            }
-        FileWriter fw = new FileWriter(tablaDS);
-        BufferedWriter bw = new BufferedWriter(fw);
-        BufferedReader b = new BufferedReader(f);
-        while((cadena = b.readLine()) != null) { //ciclo para leer el documento entero
-            compararPatron(cadena,tablaDS,bw,b);
-        }
-        b.close();
-        bw.close();
-        System.out.println("5.- Verificacion de patrones terminada");
-    }
-    
-    public void compararPatron(String cad,File tablaDS,BufferedWriter bw, BufferedReader b) throws IOException
-    {
-        
-        
-        boolean variable=false;//bandera para decir si pertenece a una variable
-        boolean reservada=false;//bandera para decir si pertenece a palabra o caracter especial
-        boolean fina=false,ban=true;
-        Boolean variableYaExistenteEnTablaDeSImbolos=false;
-        Character simbolo=' ';
-        String palabra="",pal="";
-        int aux=0,ini=0,fin=0,comparador=cad.length()-1;
-        while(aux<cad.length())
-        {
-            if(aux==comparador)
-                fina=true;
-            palabra=palabra+cad.charAt(aux);
-            simbolo=cad.charAt(aux);
-            if(simbolo.equals((char)32) || fina==true)
-                for(int i=0;i<14;i++)
-                {
-                    pal=palabra;
-                    fin=aux+1;
-                    simbolo=cad.charAt(ini);
-                    if(patrones[i][0].equals(simbolo))
-                    {
-                        for(int j=0;j<fin;j++)
-                        {
-                            simbolo=cad.charAt(ini+j);
-                            if(patrones[i][j].equals(simbolo))
-                            {
-                                reservada=true;
-                                variable=false;
-                            }
-                            else
-                            {
-                                variable=true;
-                                reservada=false;
-                                break;
-                            }
-                        }
-                        ban=false;
-                    }
-                        if(i==13)
-                        {
-                            if(reservada==true){
-                                System.out.println(palabra+" es una palabra reservada");
-                                ListaAnalisisSintatico.add(palabra);
-                            }
-                            
-                            if(variable==true){
-                                System.out.println(palabra+" es una variable");
-                                for(int n=0;n<variables.size();n++){
-                                    if(variables.get(n).equals(palabra)){
-                                        variableYaExistenteEnTablaDeSImbolos=true;
-                                    }
-                                        
-                                }
-                                if(!variableYaExistenteEnTablaDeSImbolos){
-                                    variables.add(palabra);
-                                    bw.write(palabra+"\n");
-                                }
-                                variableYaExistenteEnTablaDeSImbolos=false;
-                            }
-                            if(variable==false && reservada==false){
-                                System.out.println(pal+" es una variable");
-                                for(int n=0;n<variables.size();n++){
-                                    if(variables.get(n).equals(palabra)){
-                                        variableYaExistenteEnTablaDeSImbolos=true;   
-                                    }
-                                        
-                                }
-                                if(!variableYaExistenteEnTablaDeSImbolos){
-                                    variables.add(palabra);
-                                    bw.write(palabra+"\n");
-                                }
-                                variableYaExistenteEnTablaDeSImbolos=false;
-                            }
-                            palabra="";
-                            ini=fin;
-                            reservada=false;
-                            variable=false;
-                        }
-                }
-            aux++;
-        }
-        
-    }
-    public Boolean BarridoDeVerificacionDeSimbolos() throws FileNotFoundException, IOException{
-        String cadena;
-        Character simbolo=' ';
-        Boolean simboloEncontrado = false; //bandera que se activa si un simbolo no se escuentra en el alfabeto
+        char simbolo=' ';
+        boolean simboloEncontrado = false; //bandera que se activa si un simbolo no se escuentra en el alfabeto
         FileReader f = new FileReader(archivo);
         BufferedReader b = new BufferedReader(f);
         
         while((cadena = b.readLine()) != null) { //ciclo para leer el documento entero
-            for (Integer i = 0 ; i < cadena.length() ; i++){ //ciclo para evaluar la cadena caracter por caracter
+            for (int i = 0; i < cadena.length() ; i++){ //ciclo para evaluar la cadena caracter por caracter
                 simbolo = cadena.charAt(i);
                 if(!CompararSimbolo(simbolo)){
                     simboloEncontrado=false;
@@ -773,7 +536,7 @@ public class TinyQL {
         }
         b.close();
         if(!simboloEncontrado){
-            System.out.println(simbolo.toString()+" NO es parte del alfabeto");
+            System.out.println(simbolo+" NO es parte del alfabeto");
             return false;
         }
         else{
@@ -784,7 +547,7 @@ public class TinyQL {
     }
     public Boolean CompararSimbolo(Character ch){
         
-        Boolean simboloEncontrado = false; //bandera que se activa si un simbolo no se escuentra en el alfabeto
+        boolean simboloEncontrado = false; //bandera que se activa si un simbolo no se escuentra en el alfabeto
         for(pos=0; pos<73;pos++){
             if(lenguaje[pos].equals(ch))
                 simboloEncontrado=true;
