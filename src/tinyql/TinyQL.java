@@ -83,59 +83,142 @@ public class TinyQL {
         {
             tipoDeOperacion = cadena.substring(0, cadena.indexOf(" "));
 
-            if (tipoDeOperacion.equals("INSERT") || tipoDeOperacion.equals("insert")) {
+            switch (tipoDeOperacion) {
+                case "INSERT":
+                case "insert":
 
-                cadena = cadena.substring(cadena.indexOf('"') + 1);
-                operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
-                cadena = cadena.substring(cadena.indexOf('"') + 1);
-                cadena = cadena.substring(cadena.indexOf('"') + 1);
-                if (cadena.contains(",")){ // quiere decir que tiene mas de un campo
-
-                    nombresColumnas = cadena.substring(0,cadena.indexOf(")"));
-                    cadena = cadena.substring(cadena.indexOf("(") + 2);
-                    valores = cadena.substring(0,cadena.indexOf(")"));
-
-                    while(nombresColumnas.contains(",")){
-
-                        operando2 =  valores.substring(0 , valores.indexOf('"'));
-                        System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
-                        nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
-                        valores = valores.substring(valores.indexOf('"') + 3);
-
-                    }
-                    operando2 =  valores.substring(0 , valores.indexOf('"'));
-                    System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
-
-
-                }else { //si solo contien un campo a insertar
-
-                    operando1.append(".").append(cadena, 0, cadena.indexOf('"'));
-                    cadena = cadena.substring(cadena.indexOf("("));
-                    operando2 = cadena.substring(0,cadena.length()-3);
-                    System.out.println(tipoDeOperacion + " " + operando1 + "," + operando2);
-                }
-
-
-            }if (tipoDeOperacion.equals("SELECT") || tipoDeOperacion.equals("select")){
-
-                if (cadena.contains("*")){
-                    System.out.println("SELECT " + cadena.substring(cadena.indexOf('"') + 1,cadena.indexOf(";") - 1) + " , *");
-                }else{
-                    nombresColumnas = cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(")"));
-                    cadena = cadena.substring(cadena.indexOf(")"));
                     cadena = cadena.substring(cadena.indexOf('"') + 1);
-                    operando2 = cadena.substring(0 , cadena.indexOf('"'));
-                    while(nombresColumnas.contains(",")){
+                    operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    if (cadena.contains(",")) { // quiere decir que tiene mas de un campo
 
+                        nombresColumnas = cadena.substring(0, cadena.indexOf(")"));
+                        cadena = cadena.substring(cadena.indexOf("(") + 2);
+                        valores = cadena.substring(0, cadena.indexOf(")"));
+
+                        while (nombresColumnas.contains(",")) {
+
+                            operando2 = valores.substring(0, valores.indexOf('"'));
+                            System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
+                            nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
+                            valores = valores.substring(valores.indexOf('"') + 3);
+
+                        }
+                        operando2 = valores.substring(0, valores.indexOf('"'));
+                        System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
+
+
+                    } else { //si solo contien un campo a insertar
+
+                        operando1.append(".").append(cadena, 0, cadena.indexOf('"'));
+                        cadena = cadena.substring(cadena.indexOf("("));
+                        operando2 = cadena.substring(0, cadena.length() - 3);
+                        System.out.println(tipoDeOperacion + " " + operando1 + "," + operando2);
+                    }
+
+
+                    break;
+                case "SELECT":
+                case "select":
+
+                    if (cadena.contains("*")) {
+                        System.out.println("SELECT " + cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(";") - 1) + " , *");
+                    } else {
+                        nombresColumnas = cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(")"));
+                        cadena = cadena.substring(cadena.indexOf(")"));
+                        cadena = cadena.substring(cadena.indexOf('"') + 1);
+                        operando2 = cadena.substring(0, cadena.indexOf('"'));
+                        while (nombresColumnas.contains(",")) {
+
+                            System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+                            nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
+
+                        }
                         System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
-                        nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
 
                     }
-                    System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+
+                    break;
+                case "UPDATE":
+                case "update":
+
+                    String columnaWhere, campoWhere ;
+                    columnaWhere = cadena.substring(cadena.indexOf(")"));
+                    columnaWhere = columnaWhere.substring(columnaWhere.indexOf('"') + 1);
+                    campoWhere = columnaWhere;
+                    columnaWhere = columnaWhere.substring(0,columnaWhere.indexOf('"'));
+                    campoWhere = campoWhere.substring(campoWhere.indexOf('"') + 1);
+                    campoWhere = campoWhere.substring(campoWhere.indexOf('"') + 1);
+                    campoWhere = campoWhere.substring(0,campoWhere.indexOf('"'));
+
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
+                    operando1.append(".").append(columnaWhere);
+                    System.out.println("1 WHERE " + operando1 + " , " + campoWhere);
+
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                nombresColumnas = cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(")"));
+                operando2 = "";
+                while(nombresColumnas.contains(",")){
+
+                    operando1 = new StringBuilder();
+                    operando1.append(nombresColumnas,0,nombresColumnas.indexOf('"'));
+                    nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
+                    nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
+                    operando2 = nombresColumnas.substring(0, nombresColumnas.indexOf('"'));
+                    System.out.println(tipoDeOperacion + " 1." + operando1 + " , " + operando2);
+                    nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
+                    nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
 
                 }
+                    operando1 = new StringBuilder();
+                    operando1.append(nombresColumnas,0,nombresColumnas.indexOf('"'));
+                    nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
+                    nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
+                    operando2 = nombresColumnas.substring(0, nombresColumnas.indexOf('"'));
+                    System.out.println(tipoDeOperacion + " 1." + operando1 + " , " + operando2);
 
-        }
+                    break;
+                case "DELETE":
+                case "delete":
+
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    operando1.append(".").append(cadena, 0, cadena.indexOf('"'));
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    System.out.println("DELETE " + operando1 + " , " + cadena.substring(cadena.indexOf('"') + 1, cadena.length() - 2));
+
+                    break;
+
+                case "CREATE":
+                case "create":
+
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+
+                    while(cadena.contains(",")){
+
+                        System.out.println(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')));
+                        cadena = cadena.substring(cadena.indexOf('"') + 3);
+
+                    }
+                    System.out.println(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')));
+                    break;
+
+                case "DROP":
+                case "drop":
+
+                    cadena = cadena.substring(cadena.indexOf('"') + 1);
+                    operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
+                    System.out.println(tipoDeOperacion + " " + operando1 + " , 0");
+                    break;
+            }
+            System.out.println("7.- Generacion de codigo intermedio completado");
 
         }
 
