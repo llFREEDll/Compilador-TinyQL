@@ -28,25 +28,4 @@ CADENA DB 20 DUP()
  name : pedro
 
  }
-
-INSERT Persons.LastName , value2
-INSERT Persons.Address , value3
-SELECT Persons , PersonID
-{
-persons.PersonID : 1
-persons.PersonID : 2
-persons.PersonID : 3
-}
-SELECT Persons , LastName
-SELECT Persons , *
-1 WHERE Customers.CustomerID , 1
-UPDATE 1.ContactName , AlfredSchmidt
-UPDATE 1.Age , 18
-UPDATE 1.City , Frankfurt
-DELETE Animals.Name , Alfreds Futterkiste
-CREATE Persones , PersonID
-CREATE Persones , LastName
-CREATE Persones , FirstName
-CREATE Persones , Address
-CREATE Persones , City
-DROP tablename , 0
+ meh
