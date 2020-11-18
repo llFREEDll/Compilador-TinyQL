@@ -218,9 +218,10 @@ public class TinyQL {
                     System.out.println(tipoDeOperacion + " " + operando1 + " , 0");
                     break;
             }
-            System.out.println("7.- Generacion de codigo intermedio completado");
+
 
         }
+        System.out.println("7.- Generacion de codigo intermedio completado");
 
     }
     static void analisisSemantico() throws IOException
