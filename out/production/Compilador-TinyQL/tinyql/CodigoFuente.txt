@@ -1,7 +1,7 @@
+CREATE TABLE "Persons" ("PersonID","LastName","Address");
 INSERT INTO "Persons" ("PersonID","LastName","Address") VALUES ("value1","value2","value3");
-SELECT ("PersonID","LastName") FROM "Persons";
+SELECT ("PersonID","LastName","Address") FROM "Persons";
 SELECT * FROM "Persons";
-UPDATE "Customers" SET ("ContactName" = "AlfredSchmidt", "Age" = "18", "City" = "Frankfurt") WHERE "CustomerID" = "1";
-DELETE FROM "Animals" WHERE "Name" = "Alfreds Futterkiste";
-CREATE TABLE "Persones" ("PersonID","LastName","FirstName","Address","City");
+UPDATE "Persons" SET ("PersonID" = "AlfredSchmidt", "LastName" = "Frankfurt", "Address" = "MX") WHERE "PersonID" = "1";
+DELETE FROM "Persons" WHERE "PersonID" = "AlfredSchmidt";
 DROP TABLE "tablename";

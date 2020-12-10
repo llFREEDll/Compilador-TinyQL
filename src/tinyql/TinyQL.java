@@ -5,15 +5,18 @@
  */
 package tinyql;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 /**
  *
- * @author alfre
+ * 9 de diciembre 2020
+ *
+ * Programa que compila un lenguaje
+ * inspirado en sql para la materia
+ * de lenguajes y automatas
+ *
  */
 public class TinyQL {
 
@@ -23,7 +26,7 @@ public class TinyQL {
     private Integer pos; //entero que define la posicion del vector donde se alamcenara todo nuestro lenguaje
     static String archivo; //variable con la que se va a abrir un archivo un fichero de texto
     public String rutaTablaDeSImbolos; //localizacion de la tabla de simbolos
-    static String bd; //archivo de la BD
+    static String bd, asm; //archivo de la BD
     public ArrayList<String> variables = new ArrayList<>();
     static ArrayList<String> tablasVariables=new ArrayList<>();
     static ArrayList<String> columnasVariables=new ArrayList<>();
@@ -37,10 +40,10 @@ public class TinyQL {
     public static void main(String[] args) throws IOException {
         SegirCompilando = true;
 //        Pattern.matches("DE", "");
-//        la puta clave 
 
         archivo="C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\CodigoFuente.txt";
         bd="C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\Variables.txt";
+        asm ="C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\asm.txt";
         muestraContenido();// verificar si se pudo abrir el archivo
         TinyQL tinyQL = new TinyQL(); //instaciamiento de clase
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,6 +65,7 @@ public class TinyQL {
                 if (SegirCompilando){
 
                     GenerarCodigoIntermedio();
+                    tinyQL.GenerarCodigoASM();
 
                 }
             }
@@ -69,7 +73,187 @@ public class TinyQL {
         
         
     }
+    public void GenerarCodigoASM() throws IOException {
+
+        FileReader f = new FileReader(asm);
+        BufferedReader b = new BufferedReader(f);
+        String cadena,nombredb;
+        String []splt;
+        ArrayList<String> variablesCreate = new ArrayList<>(),
+                variablesInsert = new ArrayList<>(),
+                variablesSelect = new ArrayList<>(),
+        variablesUpdate = new ArrayList<>(),
+        variablesDelete = new ArrayList<>(),
+        variablesDrop = new ArrayList<>();
+
+        boolean isFirstLine = true;
+        FileWriter writeASM = new FileWriter("C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\asm.asm");
+        writeASM.write(".model small\n" +
+                ".stack\n" +
+                ".data\n" +
+                "lineBreak db 10,13,\"$\"\n" +
+                "dospuntos db \" : $\"\n" +
+                "deletedb db \"DB droped$\"\n");
+        while((cadena=b.readLine()) !=null) {
+
+            splt = cadena.split(" ");
+            switch (splt[0]) {
+                case "CREATE", "create" -> {
+                    if (isFirstLine) {
+                        nombredb = splt[1];
+                        writeASM.write("dbname db \"DB:" + nombredb + "$\"\n");
+                        isFirstLine = false;
+                    }
+                    writeASM.write("create" + variablesCreate.size() + " db \"" + splt[3] + "$\"\n");
+                    variablesCreate.add(splt[3]);
+                }
+                case "INSERT", "insert" -> {
+                    writeASM.write("insert" + variablesInsert.size() + " db \"" + splt[3] + "$\"\n");
+                    variablesInsert.add(splt[3]);
+                }
+                case "SELECT", "select" -> {
+                    writeASM.write("select" + variablesSelect.size() + " db \"" + splt[3] + "$\"\n");
+                    variablesSelect.add(splt[3]);
+                }
+                case "Update", "UPDATE" -> {
+                    writeASM.write("update" + variablesUpdate.size() + " db \"" + splt[3] + "$\"\n");
+                    variablesUpdate.add(splt[3]);
+                }
+                case "DELETE", "delete" -> {
+                    writeASM.write("delete" + variablesDelete.size() + " db \"" + splt[3] + "$\"\n");
+                    variablesDelete.add(splt[3]);
+                }
+                case "DROP", "drop" -> {
+                    writeASM.write("drop" + variablesDrop.size() + " db \"" + splt[3] + "$\"\n");
+                    variablesDrop.add(splt[3]);
+                }
+            }
+        }
+
+        writeASM.write(".code\n" +
+                            "MAIN PROC FAR  \n" +
+                            "MOV AX,@DATA\n" +
+                            "MOV DS,AX\n " +
+                            "LEA DX,dbname\n" +
+                            "MOV AH,09H \n" +
+                            "INT 21H  \n" +
+                            "LEA DX, lineBreak\n" +
+                            "MOV AH,09H \n" +
+                            "INT 21H  \n");
+
+        //cargar create
+        for (int i = 0 ; i < variablesCreate.size() ; i++){
+
+            writeASM.write("LEA DX," + "create" + i + "  \n" +
+                                        "MOV AH,09H \n" +
+                                        " INT 21H  \n" +
+                                        "LEA DX, lineBreak\n" +
+                                        "MOV AH,09H \n" +
+                                        "INT 21H  \n");
+        }
+        //cargar insert
+        for (int i = 0 ; i < variablesInsert.size() ; i++){
+
+            writeASM.write("LEA DX," + "create" + i + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX," + "dospuntos" + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX," + "insert" + i + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX, lineBreak\n" +
+                    "MOV AH,09H \n" +
+                    "INT 21H  \n");
+        }
+
+        //cargar select
+
+        if (variablesSelect.contains("*"))
+
+        for (int i = 0 ; i < variablesInsert.size() ; i++){
+
+            writeASM.write("LEA DX," + "create" + i + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX," + "dospuntos" + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX," + "insert" + i + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX, lineBreak\n" +
+                    "MOV AH,09H \n" +
+                    "INT 21H  \n");
+
+        }
+        else
+            for (int i = 0 ; i < variablesInsert.size()  ; i++){
+
+                if (variablesSelect.get(i).contains(variablesSelect.get(i)))
+                writeASM.write("LEA DX," + "create" + i + "  \n" +
+                        "MOV AH,09H \n" +
+                        " INT 21H  \n" +
+                        "LEA DX," + "dospuntos" + "  \n" +
+                        "MOV AH,09H \n" +
+                        " INT 21H  \n" +
+                        "LEA DX," + "insert" + i + "  \n" +
+                        "MOV AH,09H \n" +
+                        " INT 21H  \n" +
+                        "LEA DX, lineBreak\n" +
+                        "MOV AH,09H \n" +
+                        "INT 21H  \n");
+            }
+
+            //cargar update
+        for (int i = 0 ; i < variablesUpdate.size()  ; i++){
+
+                writeASM.write("LEA DX," + "create" + i + "  \n" +
+                        "MOV AH,09H \n" +
+                        " INT 21H  \n" +
+                        "LEA DX," + "dospuntos" + "  \n" +
+                        "MOV AH,09H \n" +
+                        " INT 21H  \n" +
+                        "LEA DX," + "update" + i + "  \n" +
+                        "MOV AH,09H \n" +
+                        " INT 21H  \n" +
+                        "LEA DX, lineBreak\n" +
+                        "MOV AH,09H \n" +
+                        "INT 21H  \n");
+        }
+        //cargar delete
+        for (int i = 0 ; i < variablesCreate.size() ; i++){
+
+            writeASM.write("LEA DX," + "create" + i + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX, lineBreak\n" +
+                    "MOV AH,09H \n" +
+                    "INT 21H  \n");
+        }
+        //cargar drop
+        if (variablesDrop.size() > 0)
+            writeASM.write("LEA DX," + "deletedb" + "  \n" +
+                    "MOV AH,09H \n" +
+                    " INT 21H  \n" +
+                    "LEA DX, lineBreak\n" +
+                    "MOV AH,09H \n" +
+                    "INT 21H  \n");
+
+        writeASM.write("MOV AH,4CH \n" +
+                        " INT 21H  \n" +
+                        "MAIN ENDP  \n" +
+                        "END MAIN ");
+        writeASM.close();
+        System.out.println("8.- Generacion de codigo objeto completado");
+
+    }
     public static void GenerarCodigoIntermedio() throws IOException {
+
+        FileWriter WriteASM = new FileWriter("C:\\Users\\alfre\\OneDrive\\Documents\\Compilador-TinyQL\\src\\tinyql\\asm.txt");
+//        WriteASM.write("Files in Java might be tricky, but it is fun enough!");
+//        WriteASM.close();
 
         FileReader f = new FileReader(archivo);
         BufferedReader b = new BufferedReader(f);
@@ -100,21 +284,23 @@ public class TinyQL {
                         while (nombresColumnas.contains(",")) {
 
                             operando2 = valores.substring(0, valores.indexOf('"'));
-                            System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
+//                            System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
+                            WriteASM.write(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2 + "\n");
                             nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
                             valores = valores.substring(valores.indexOf('"') + 3);
 
                         }
                         operando2 = valores.substring(0, valores.indexOf('"'));
-                        System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
-
+//                        System.out.println(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2);
+                        WriteASM.write(tipoDeOperacion + " " + operando1 + "." + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + " , " + operando2 + "\n");
 
                     } else { //si solo contien un campo a insertar
 
                         operando1.append(".").append(cadena, 0, cadena.indexOf('"'));
                         cadena = cadena.substring(cadena.indexOf("("));
                         operando2 = cadena.substring(0, cadena.length() - 3);
-                        System.out.println(tipoDeOperacion + " " + operando1 + "," + operando2);
+//                        System.out.println(tipoDeOperacion + " " + operando1 + "," + operando2);
+                        WriteASM.write(tipoDeOperacion + " " + operando1 + "," + operando2 + "\n");
                     }
 
 
@@ -123,7 +309,8 @@ public class TinyQL {
                 case "select":
 
                     if (cadena.contains("*")) {
-                        System.out.println("SELECT " + cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(";") - 1) + " , *");
+//                        System.out.println("SELECT " + cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(";") - 1) + " , *");
+                        WriteASM.write("SELECT " + cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(";") - 1) + " , *" + "\n");
                     } else {
                         nombresColumnas = cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(")"));
                         cadena = cadena.substring(cadena.indexOf(")"));
@@ -131,11 +318,13 @@ public class TinyQL {
                         operando2 = cadena.substring(0, cadena.indexOf('"'));
                         while (nombresColumnas.contains(",")) {
 
-                            System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+//                            System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+                            WriteASM.write(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + "\n");
                             nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 3);
 
                         }
-                        System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+//                        System.out.println(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')));
+                        WriteASM.write(tipoDeOperacion + " " + operando2 + " , " + nombresColumnas.substring(0, nombresColumnas.indexOf('"')) + "\n");
 
                     }
 
@@ -155,19 +344,21 @@ public class TinyQL {
                     cadena = cadena.substring(cadena.indexOf('"') + 1);
                     operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
                     operando1.append(".").append(columnaWhere);
-                    System.out.println("1 WHERE " + operando1 + " , " + campoWhere);
+//                    System.out.println("1 WHERE " + operando1 + " , " + campoWhere);
+                    WriteASM.write("1 WHERE " + operando1 + " , " + campoWhere + "\n");
 
                     cadena = cadena.substring(cadena.indexOf('"') + 1);
                 nombresColumnas = cadena.substring(cadena.indexOf('"') + 1, cadena.indexOf(")"));
-                operando2 = "";
-                while(nombresColumnas.contains(",")){
+                    while(nombresColumnas.contains(",")){
 
                     operando1 = new StringBuilder();
                     operando1.append(nombresColumnas,0,nombresColumnas.indexOf('"'));
                     nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
                     nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
                     operando2 = nombresColumnas.substring(0, nombresColumnas.indexOf('"'));
-                    System.out.println(tipoDeOperacion + " 1." + operando1 + " , " + operando2);
+//                    System.out.println(tipoDeOperacion " "  + operando1 + " , " + operando2);
+                    WriteASM.write(tipoDeOperacion + " " + operando1 + " , " + operando2 + "\n");
+
                     nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
                     nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
 
@@ -177,7 +368,8 @@ public class TinyQL {
                     nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
                     nombresColumnas = nombresColumnas.substring(nombresColumnas.indexOf('"') + 1);
                     operando2 = nombresColumnas.substring(0, nombresColumnas.indexOf('"'));
-                    System.out.println(tipoDeOperacion + " 1." + operando1 + " , " + operando2);
+//                    System.out.println(tipoDeOperacion + " " + operando1 + " , " + operando2);
+                    WriteASM.write(tipoDeOperacion + " " + operando1 + " , " + operando2 + "\n");
 
                     break;
                 case "DELETE":
@@ -189,7 +381,8 @@ public class TinyQL {
                     cadena = cadena.substring(cadena.indexOf('"') + 1);
                     operando1.append(".").append(cadena, 0, cadena.indexOf('"'));
                     cadena = cadena.substring(cadena.indexOf('"') + 1);
-                    System.out.println("DELETE " + operando1 + " , " + cadena.substring(cadena.indexOf('"') + 1, cadena.length() - 2));
+//                    System.out.println("DELETE " + operando1 + " , " + cadena.substring(cadena.indexOf('"') + 1, cadena.length() - 2));
+                    WriteASM.write("DELETE " + operando1 + " , " + cadena.substring(cadena.indexOf('"') + 1, cadena.length() - 2) + "\n");
 
                     break;
 
@@ -203,11 +396,13 @@ public class TinyQL {
 
                     while(cadena.contains(",")){
 
-                        System.out.println(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')));
+//                        System.out.println(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')));
+                        WriteASM.write(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')) + "\n");
                         cadena = cadena.substring(cadena.indexOf('"') + 3);
 
                     }
-                    System.out.println(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')));
+//                    System.out.println(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')));
+                    WriteASM.write(tipoDeOperacion + " " + operando1 + " , " + cadena.substring(0, cadena.indexOf('"')) + "\n");
                     break;
 
                 case "DROP":
@@ -215,12 +410,14 @@ public class TinyQL {
 
                     cadena = cadena.substring(cadena.indexOf('"') + 1);
                     operando1 = new StringBuilder(cadena.substring(0, cadena.indexOf('"')));
-                    System.out.println(tipoDeOperacion + " " + operando1 + " , 0");
+//                    System.out.println(tipoDeOperacion + " " + operando1 + " , 0");
+                    WriteASM.write(tipoDeOperacion + " " + operando1 + " , 0" + "\n");
                     break;
             }
 
 
         }
+        WriteASM.close();
         System.out.println("7.- Generacion de codigo intermedio completado");
 
     }
@@ -243,6 +440,9 @@ public class TinyQL {
                     System.out.println("Error en la linea "+linea+", ya existe la tabla "+parts[2]+" en la base de datos");
                     SegirCompilando = false;
                     break;
+                }else{
+                    tablasVariables.add(parts[2].substring(1, parts[2].length()-1));
+                    columnasVariables.add(parts[3]);
                 }
             }
             

@@ -1,0 +1,16 @@
+CREATE Persons , PersonID
+CREATE Persons , LastName
+CREATE Persons , Address
+INSERT Persons.PersonID , value1
+INSERT Persons.LastName , value2
+INSERT Persons.Address , value3
+SELECT Persons , PersonID
+SELECT Persons , LastName
+SELECT Persons , Address
+SELECT Persons , *
+1 WHERE Persons.PersonID , 1
+UPDATE PersonID , AlfredSchmidt
+UPDATE LastName , Frankfurt
+UPDATE Address , MX
+DELETE Persons.PersonID , AlfredSchmidt
+DROP tablename , 0
